@@ -123,6 +123,20 @@ TOOLS = [
             "required": [],
         },
     ),
+    Tool(
+        name="enphase_get_tariff",
+        description=(
+            "Returns the full TOU (time-of-use) rate structure: all rate tiers, their $/kWh prices, "
+            "and the schedule of which tier is active for each hour of each day of the week, "
+            "including seasonal and weekend/weekday variations. "
+            "Use this to determine the cheapest hours to charge the EV or run high-draw appliances."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    ),
 ]
 
 
@@ -168,6 +182,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
         elif name == "enphase_get_alerts":
             result = await api.get_alerts()
+
+        elif name == "enphase_get_tariff":
+            result = await api.get_tariff()
 
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]

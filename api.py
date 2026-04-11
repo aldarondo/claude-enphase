@@ -56,6 +56,16 @@ async def set_battery_profile(profile: str) -> dict:
     return resp.json()
 
 
+async def get_tariff() -> dict:
+    auth = get_auth()
+    resp = await auth.request(
+        "GET",
+        f"/app-api/{SITE_ID}/tariff.json",
+        params={"country": "us"},
+    )
+    return resp.json()
+
+
 async def get_alerts() -> dict:
     auth = get_auth()
     resp = await auth.request("GET", f"/app-api/{SITE_ID}/new_articles_alert.json")
