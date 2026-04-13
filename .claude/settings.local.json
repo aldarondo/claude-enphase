@@ -3,7 +3,8 @@
     "allow": [
       "Bash(gh auth:*)",
       "Bash(where gh:*)",
-      "Bash(git --version)"
+      "Bash(git --version)",
+      "Bash(winget install:*)"
     ]
   }
 }
