@@ -274,6 +274,7 @@ async def _run_stdio():
 
 def _run_sse(host: str, port: int):
     """Run server with SSE transport (persistent NAS deployment)."""
+    from contextlib import asynccontextmanager
     from mcp.server.sse import SseServerTransport
     from starlette.applications import Starlette
     from starlette.routing import Mount, Route
@@ -287,12 +288,18 @@ def _run_sse(host: str, port: int):
         ) as streams:
             await app.run(streams[0], streams[1], app.create_initialization_options())
 
+    @asynccontextmanager
+    async def lifespan(app):
+        scheduler = _start_scheduler()
+        yield
+        scheduler.shutdown()
+
     starlette_app = Starlette(
         routes=[
             Route("/sse", endpoint=handle_sse),
             Mount("/messages/", app=sse_transport.handle_post_message),
         ],
-        on_startup=[lambda: _start_scheduler()],
+        lifespan=lifespan,
     )
 
     logger.info("Starting SSE server on %s:%d", host, port)
