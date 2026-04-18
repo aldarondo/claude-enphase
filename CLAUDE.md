@@ -35,3 +35,7 @@ MCP (Model Context Protocol) server that integrates Claude with an Enphase solar
 
 ---
 @~/Documents/GitHub/CLAUDE.md
+
+## Git Rules
+- Never create pull requests. Push directly to main.
+- solo/auto-push OK
