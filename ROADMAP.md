@@ -22,6 +22,10 @@ Production deployment — server running reliably on local machine or NAS with C
 [Empty]
 
 ## ✅ Completed
+- **Full deploy pipeline working end-to-end (2026-04-18)**
+  - Fixed `synology deploy` Windows path mangling bug (`fix_nas_path()` + explicit `GIT_SSH_COMMAND` for sudo/root SSH config)
+  - Deployed via `synology deploy git@github-claude-enphase:aldarondo/claude-enphase.git /volume1/docker/claude-enphase`
+  - Container running at `192.168.0.64:8766`, scheduler confirmed active in logs
 - **NAS deployment — persistent Docker container with SSE transport (2026-04-18)**
   - Added SSE transport mode to server.py (`MCP_TRANSPORT=sse` env var; stdio still default for local dev)
   - Added Dockerfile + docker-compose.yml; container runs on NAS at `192.168.0.64:8766`
