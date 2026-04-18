@@ -4,7 +4,7 @@
 Production deployment — server running reliably on local machine or NAS with Claude Desktop connected
 
 ### 🔨 In Progress
-- Enphase + JuiceBox integration — solar-aware EV charging (pause during 4–7pm peak, shift to 2–5am off-peak, charge from solar excess only)
+[Empty]
 
 ### 🟢 Ready (Next Up)
 
@@ -20,6 +20,10 @@ Production deployment — server running reliably on local machine or NAS with C
 [Empty]
 
 ## ✅ Completed
+- **Enphase + JuiceBox integration deployed (2026-04-18)**
+  - `claude-juicebox` (Mosquitto + JuicePassProxy + MCP) live on NAS at port 3001
+  - `enphase-juicebox-coordinator` live on NAS at port 8767, daily scheduler at 04:00 AZ
+  - Both connected to Claude Desktop via SSE; JuiceBox UDPC redirected and streaming live data
 - **Grid charging enabled + backup reserve raised (2026-04-18)**
   - Enabled 2–5am grid charging schedule in Enphase app — prevents repeat of March 17 demand spike
   - Raised backup reserve 10% → 20% for Phoenix monsoon season resilience
