@@ -9,8 +9,6 @@ Production deployment — server running reliably on local machine or NAS with C
 ### 🟢 Ready (Next Up)
 - Enable grid charging schedule (2–5am) in battery settings — immediate action to prevent repeat of March 17 demand spike
 - Raise backup reserve from 10% → 20% for Phoenix monsoon season resilience
-- Deploy server to Synology NAS as a persistent background process (Docker or systemd)
-- Verify Claude Desktop MCP config points to the deployed server
 
 ### 📋 Backlog
 - Automated weekend `self_consumption` profile switch (Friday night → Monday morning) via MCP scheduler
@@ -24,6 +22,12 @@ Production deployment — server running reliably on local machine or NAS with C
 [Empty]
 
 ## ✅ Completed
+- **NAS deployment — persistent Docker container with SSE transport (2026-04-18)**
+  - Added SSE transport mode to server.py (`MCP_TRANSPORT=sse` env var; stdio still default for local dev)
+  - Added Dockerfile + docker-compose.yml; container runs on NAS at `192.168.0.64:8766`
+  - Weekend scheduler (Sat→self-consumption, Mon→cost_savings) now fires reliably 24/7
+  - Updated Claude Desktop MCP config to SSE endpoint
+  - Fixes: Starlette lifespan API (on_startup removed in 0.40+), tzdata missing in slim image
 - **APS bill optimization analysis — 60-day data pull + full report (2026-04-14)**
   - Identified March 17 demand spike root cause: EV charging absorbed all solar, battery starved, $141.60 demand charge
   - Identified consumption doubling from ~73 kWh/day (Feb) to ~150 kWh/day (Mar 17+) — HVAC/AC onset
