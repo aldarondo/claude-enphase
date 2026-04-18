@@ -7,8 +7,6 @@ Production deployment — server running reliably on local machine or NAS with C
 - Enphase + JuiceBox integration — solar-aware EV charging (pause during 4–7pm peak, shift to 2–5am off-peak, charge from solar excess only)
 
 ### 🟢 Ready (Next Up)
-- Enable grid charging schedule (2–5am) in battery settings — immediate action to prevent repeat of March 17 demand spike
-- Raise backup reserve from 10% → 20% for Phoenix monsoon season resilience
 
 ### 📋 Backlog
 - Automated weekend `self_consumption` profile switch (Friday night → Monday morning) via MCP scheduler
@@ -22,6 +20,9 @@ Production deployment — server running reliably on local machine or NAS with C
 [Empty]
 
 ## ✅ Completed
+- **Grid charging enabled + backup reserve raised (2026-04-18)**
+  - Enabled 2–5am grid charging schedule in Enphase app — prevents repeat of March 17 demand spike
+  - Raised backup reserve 10% → 20% for Phoenix monsoon season resilience
 - **Full deploy pipeline working end-to-end (2026-04-18)**
   - Fixed `synology deploy` Windows path mangling bug (`fix_nas_path()` + explicit `GIT_SSH_COMMAND` for sudo/root SSH config)
   - Deployed via `synology deploy git@github-claude-enphase:aldarondo/claude-enphase.git /volume1/docker/claude-enphase`
