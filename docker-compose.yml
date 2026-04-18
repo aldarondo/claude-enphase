@@ -1,0 +1,21 @@
+services:
+  enphase-mcp:
+    build: .
+    image: enphase-mcp:latest
+    container_name: enphase-mcp
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      MCP_TRANSPORT: sse
+      MCP_HOST: "0.0.0.0"
+      MCP_PORT: "8766"
+      ENPHASE_EMAIL: ${ENPHASE_EMAIL}
+      ENPHASE_PASSWORD: ${ENPHASE_PASSWORD}
+    ports:
+      - "8766:8766"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8766/sse')"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

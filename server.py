@@ -6,10 +6,15 @@ at site 3687112 (ALDARONDO — 15443 N 13th Ave).
 
 Also runs a background scheduler that automatically switches battery profiles
 on weekends (self-consumption) and restores weekday mode (cost_savings) on Monday.
+
+Transport modes:
+  stdio (default)  — Claude Desktop spawns this process directly (local dev)
+  sse              — Persistent HTTP server; set MCP_TRANSPORT=sse and MCP_PORT=8766
 """
 
 import asyncio
 import logging
+import os
 from datetime import date
 
 import pytz
@@ -248,18 +253,58 @@ def _build_scheduler() -> AsyncIOScheduler:
 # Entry point
 # ---------------------------------------------------------------------------
 
-async def main():
+def _start_scheduler() -> AsyncIOScheduler:
     scheduler = _build_scheduler()
     scheduler.start()
     logger.info("Weekend scheduler started (US/Arizona timezone)")
     logger.info("  Saturday 00:00 AZ → self-consumption")
     logger.info("  Monday   00:00 AZ → cost_savings")
+    return scheduler
 
-    async with stdio_server() as (read_stream, write_stream):
-        await app.run(read_stream, write_stream, app.create_initialization_options())
 
-    scheduler.shutdown()
+async def _run_stdio():
+    """Run server with stdio transport (local dev / Claude Desktop subprocess)."""
+    scheduler = _start_scheduler()
+    try:
+        async with stdio_server() as (read_stream, write_stream):
+            await app.run(read_stream, write_stream, app.create_initialization_options())
+    finally:
+        scheduler.shutdown()
+
+
+def _run_sse(host: str, port: int):
+    """Run server with SSE transport (persistent NAS deployment)."""
+    from mcp.server.sse import SseServerTransport
+    from starlette.applications import Starlette
+    from starlette.routing import Mount, Route
+    import uvicorn
+
+    sse_transport = SseServerTransport("/messages/")
+
+    async def handle_sse(request):
+        async with sse_transport.connect_sse(
+            request.scope, request.receive, request._send
+        ) as streams:
+            await app.run(streams[0], streams[1], app.create_initialization_options())
+
+    starlette_app = Starlette(
+        routes=[
+            Route("/sse", endpoint=handle_sse),
+            Mount("/messages/", app=sse_transport.handle_post_message),
+        ],
+        on_startup=[lambda: _start_scheduler()],
+    )
+
+    logger.info("Starting SSE server on %s:%d", host, port)
+    logger.info("  Claude Desktop endpoint: http://%s:%d/sse", host, port)
+    uvicorn.run(starlette_app, host=host, port=port)
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    transport = os.environ.get("MCP_TRANSPORT", "stdio").lower()
+    if transport == "sse":
+        host = os.environ.get("MCP_HOST", "0.0.0.0")
+        port = int(os.environ.get("MCP_PORT", "8766"))
+        _run_sse(host, port)
+    else:
+        asyncio.run(_run_stdio())
