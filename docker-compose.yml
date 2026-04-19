@@ -1,7 +1,6 @@
 services:
   enphase-mcp:
-    build: .
-    image: enphase-mcp:latest
+    image: ghcr.io/aldarondo/enphase-mcp:latest   # built by .github/workflows/build.yml
     container_name: enphase-mcp
     restart: unless-stopped
     working_dir: /app
