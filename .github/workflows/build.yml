@@ -3,6 +3,9 @@ name: Build enphase-mcp image
 on:
   push:
     branches: [main]
+  schedule:
+    # Rebuild weekly (Sunday 02:00 UTC) to pick up python:3.12-slim base image updates
+    - cron: "0 2 * * 0"
   workflow_dispatch:
 
 permissions:
