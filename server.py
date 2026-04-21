@@ -15,7 +15,7 @@ Transport modes:
 import asyncio
 import logging
 import os
-from datetime import date
+from datetime import date, datetime
 
 import pytz
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -129,6 +129,33 @@ TOOLS = [
         },
     ),
     Tool(
+        name="enphase_check_alerts",
+        description=(
+            "Evaluates current system conditions and returns active smart alerts. "
+            "Checks: (1) demand spike risk — battery SoC below threshold heading into the "
+            "4–7pm peak demand window on weekdays; (2) low battery — SoC below a configurable "
+            "threshold at any time. Returns a list of alerts with type, severity, message, "
+            "and recommended action. Call on a schedule from the coordinator."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "low_soc_threshold": {
+                    "type": "number",
+                    "description": "SoC % below which to trigger a low-battery alert. Default: 20.",
+                },
+                "demand_window_soc_threshold": {
+                    "type": "number",
+                    "description": (
+                        "SoC % below which to trigger a demand-spike warning when approaching "
+                        "the 4–7pm weekday peak window. Default: 30."
+                    ),
+                },
+            },
+            "required": [],
+        },
+    ),
+    Tool(
         name="enphase_get_tariff",
         description=(
             "Returns the full TOU (time-of-use) rate structure: all rate tiers, their $/kWh prices, "
@@ -143,6 +170,46 @@ TOOLS = [
         },
     ),
 ]
+
+
+# ---------------------------------------------------------------------------
+# Alert evaluation (pure — no I/O)
+# ---------------------------------------------------------------------------
+
+def _evaluate_alerts(
+    soc_pct: float | None,
+    now_az: datetime,
+    *,
+    low_soc_threshold: float = 20.0,
+    demand_window_soc_threshold: float = 30.0,
+) -> list[dict]:
+    """Return active alerts given current SoC and local time. No side effects."""
+    alerts = []
+    is_weekday = now_az.weekday() < 5  # Mon=0 … Sun=6
+    approaching_peak = is_weekday and 12 <= now_az.hour < 19  # noon → 7 pm covers lead-up + window
+
+    if soc_pct is not None and approaching_peak and soc_pct < demand_window_soc_threshold:
+        alerts.append({
+            "type": "demand_spike_risk",
+            "severity": "warning",
+            "message": (
+                f"Battery SoC is {soc_pct}% — below {demand_window_soc_threshold}% "
+                "heading into the 4–7pm peak demand window."
+            ),
+            "soc_pct": soc_pct,
+            "recommended_action": "Switch to self-consumption or reduce load before 4pm.",
+        })
+
+    if soc_pct is not None and soc_pct < low_soc_threshold:
+        alerts.append({
+            "type": "low_battery",
+            "severity": "critical" if soc_pct < 10 else "warning",
+            "message": f"Battery SoC is {soc_pct}% — below the {low_soc_threshold}% threshold.",
+            "soc_pct": soc_pct,
+            "recommended_action": "Enable charge_from_grid or reduce consumption.",
+        })
+
+    return alerts
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +251,24 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             target_date = arguments["date"]
             resolution = arguments.get("resolution", "DAY")
             result = await api.get_savings(target_date, resolution)
+
+        elif name == "enphase_check_alerts":
+            status = await api.get_status_summary()
+            soc_pct = status["today"]["battery_soc_pct"]
+            now_az = datetime.now(ARIZONA)
+            low_thresh = float(arguments.get("low_soc_threshold", 20))
+            demand_thresh = float(arguments.get("demand_window_soc_threshold", 30))
+            active = _evaluate_alerts(
+                soc_pct, now_az,
+                low_soc_threshold=low_thresh,
+                demand_window_soc_threshold=demand_thresh,
+            )
+            result = {
+                "checked_at": now_az.isoformat(),
+                "soc_pct": soc_pct,
+                "alert_count": len(active),
+                "alerts": active,
+            }
 
         elif name == "enphase_get_alerts":
             result = await api.get_alerts()

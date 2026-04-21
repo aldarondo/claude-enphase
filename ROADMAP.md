@@ -9,15 +9,13 @@ Production deployment — server running reliably on local machine or NAS with C
 ### 🟢 Ready (Next Up)
 
 ### 📋 Backlog
-- Add demand spike alert — notify when battery SoC is low heading into 4–7pm window on a weekday
 - Add tool: real-time production vs consumption comparison
-- Add alerting webhook or notification when battery drops below threshold
-- Write deployment runbook (Docker Compose on NAS)
 
 ### 🔴 Blocked
 [Empty]
 
 ## ✅ Completed
+- **Added `enphase_check_alerts` tool (2026-04-21)** — combines demand spike risk (low SoC heading into 4–7pm weekday window) and low battery threshold alert; callable by the coordinator on a schedule; 12 new tests
 - **Removed weekend auto-scheduler from server.py (2026-04-21)** — profile switching delegated to enphase-juicebox-coordinator; dropped apscheduler/pytz/tzdata deps
 - **Enphase + JuiceBox integration deployed (2026-04-18)**
   - `claude-juicebox` (Mosquitto + JuicePassProxy + MCP) live on NAS at port 3001
