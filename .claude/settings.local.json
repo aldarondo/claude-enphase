@@ -4,7 +4,9 @@
       "Bash(gh auth:*)",
       "Bash(where gh:*)",
       "Bash(git --version)",
-      "Bash(winget install:*)"
+      "Bash(winget install:*)",
+      "Bash(gh run *)",
+      "Bash(gh secret *)"
     ]
   }
 }

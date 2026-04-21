@@ -9,17 +9,16 @@ Production deployment — server running reliably on local machine or NAS with C
 ### 🟢 Ready (Next Up)
 
 ### 📋 Backlog
-- Automated weekend `self_consumption` profile switch (Friday night → Monday morning) via MCP scheduler
 - Add demand spike alert — notify when battery SoC is low heading into 4–7pm window on a weekday
 - Add tool: real-time production vs consumption comparison
 - Add alerting webhook or notification when battery drops below threshold
-- Harden scheduler — add logging and failure alerting for profile switch failures
 - Write deployment runbook (Docker Compose on NAS)
 
 ### 🔴 Blocked
 [Empty]
 
 ## ✅ Completed
+- **Removed weekend auto-scheduler from server.py (2026-04-21)** — profile switching delegated to enphase-juicebox-coordinator; dropped apscheduler/pytz/tzdata deps
 - **Enphase + JuiceBox integration deployed (2026-04-18)**
   - `claude-juicebox` (Mosquitto + JuicePassProxy + MCP) live on NAS at port 3001
   - `enphase-juicebox-coordinator` live on NAS at port 8767, daily scheduler at 04:00 AZ
@@ -49,5 +48,4 @@ Production deployment — server running reliably on local machine or NAS with C
 - `.env.example` credentials template
 
 ## 🚫 Blocked
-- ❌ [docker-monitor:container-stopped] Container `enphase-mcp` is not running on the NAS — check `docker logs enphase-mcp` and restart — 2026-04-21 08:42 UTC
-- ❌ [docker-monitor:deploy-failed] GitHub Actions deploy failed (run #24690326749) — https://github.com/aldarondo/claude-enphase/actions/runs/24690326749 — 2026-04-21 08:00 UTC
+[Empty]
