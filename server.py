@@ -120,6 +120,11 @@ TOOLS = [
         },
     ),
     Tool(
+        name="enphase_get_weather",
+        description="Returns current weather data from the Enphase system (temperature, conditions, cloud cover if available).",
+        inputSchema={"type": "object", "properties": {}, "required": []},
+    ),
+    Tool(
         name="enphase_get_alerts",
         description="Returns any active system alerts or notifications from the Enphase system.",
         inputSchema={
@@ -384,6 +389,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "alert_count": len(active),
                 "alerts": active,
             }
+
+        elif name == "enphase_get_weather":
+            result = await api.get_weather()
 
         elif name == "enphase_get_alerts":
             result = await api.get_alerts()

@@ -78,6 +78,12 @@ async def get_tariff() -> dict:
     return resp.json()
 
 
+async def get_weather() -> dict:
+    auth = get_auth()
+    resp = await auth.request("GET", f"/app-api/{SITE_ID}/weather")
+    return resp.json()
+
+
 async def get_alerts() -> dict:
     auth = get_auth()
     resp = await auth.request("GET", f"/app-api/{SITE_ID}/new_articles_alert.json")
