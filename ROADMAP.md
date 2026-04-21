@@ -9,12 +9,13 @@ Production deployment — server running reliably on local machine or NAS with C
 ### 🟢 Ready (Next Up)
 
 ### 📋 Backlog
-- Add tool: real-time production vs consumption comparison
+[Empty]
 
 ### 🔴 Blocked
 [Empty]
 
 ## ✅ Completed
+- **Added `enphase_get_power_flow` tool (2026-04-21)** — solar production W + today's energy balance + live APS TOU rate ($/kWh + tier) + demand charge window status + buyback rate; 14 new tests
 - **Added `enphase_check_alerts` tool (2026-04-21)** — combines demand spike risk (low SoC heading into 4–7pm weekday window) and low battery threshold alert; callable by the coordinator on a schedule; 12 new tests
 - **Removed weekend auto-scheduler from server.py (2026-04-21)** — profile switching delegated to enphase-juicebox-coordinator; dropped apscheduler/pytz/tzdata deps
 - **Enphase + JuiceBox integration deployed (2026-04-18)**

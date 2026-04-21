@@ -156,6 +156,20 @@ TOOLS = [
         },
     ),
     Tool(
+        name="enphase_get_power_flow",
+        description=(
+            "Returns real-time solar production (W), today's energy balance (produced / consumed / "
+            "imported / exported / battery Wh), current APS TOU rate ($/kWh and tier type), "
+            "demand charge window status ($13.75–19.59/kW if importing during 4–7pm weekday), "
+            "and export buyback rate. Use this for any production-vs-consumption decision."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {},
+            "required": [],
+        },
+    ),
+    Tool(
         name="enphase_get_tariff",
         description=(
             "Returns the full TOU (time-of-use) rate structure: all rate tiers, their $/kWh prices, "
@@ -170,6 +184,78 @@ TOOLS = [
         },
     ),
 ]
+
+
+# ---------------------------------------------------------------------------
+# Tariff helpers (pure — no I/O)
+# ---------------------------------------------------------------------------
+
+def _in_season(season: dict, month: int) -> bool:
+    start, end = int(season["startMonth"]), int(season["endMonth"])
+    if start <= end:
+        return start <= month <= end
+    return month >= start or month <= end  # wraps year-end (e.g. Nov–Apr)
+
+
+def _find_active_rate(tariff: dict, now_az: datetime) -> dict | None:
+    """Return the active purchase rate period for the given time, or None on failure."""
+    try:
+        aps_dow = now_az.weekday() + 1  # Python 0=Mon → APS 1=Mon; 6=Sun → 7
+        minutes = now_az.hour * 60 + now_az.minute
+        season = next((s for s in tariff["purchase"]["seasons"] if _in_season(s, now_az.month)), None)
+        if not season:
+            return None
+        day_group = next((d for d in season["days"] if aps_dow in d["days"]), None)
+        if not day_group:
+            return None
+        fallback = None
+        for period in day_group["periods"]:
+            if period["startTime"] == "":
+                fallback = period
+                continue
+            if int(period["startTime"]) <= minutes <= int(period["endTime"]):
+                return {"period_id": period["id"], "type": period["type"],
+                        "rate_per_kwh": float(period["rate"]), "season": season["id"]}
+        if fallback:
+            return {"period_id": fallback["id"], "type": fallback["type"],
+                    "rate_per_kwh": float(fallback["rate"]), "season": season["id"]}
+    except Exception:
+        pass
+    return None
+
+
+def _demand_charge_context(tariff: dict, now_az: datetime) -> dict | None:
+    """Return demand charge info and whether the current time is inside the billing window."""
+    try:
+        aps_dow = now_az.weekday() + 1
+        minutes = now_az.hour * 60 + now_az.minute
+        for season in tariff["purchase"]["demandCharge"]["demandChargeSeasons"]:
+            if not _in_season(season, now_az.month):
+                continue
+            for day_group in season.get("days", []):
+                if aps_dow not in day_group["days"]:
+                    continue
+                for period in day_group.get("periods", []):
+                    start, end = int(period["startTime"]), int(period["endTime"])
+                    return {
+                        "in_window": start <= minutes <= end,
+                        "window": f"{start // 60}:{start % 60:02d}–{(end + 1) // 60}:{(end + 1) % 60:02d}",
+                        "rate_per_kw": float(period["rate"]),
+                        "season": season["id"],
+                    }
+    except Exception:
+        pass
+    return None
+
+
+def _buyback_rate(tariff: dict) -> float | None:
+    """Extract the flat export buyback rate from tariff."""
+    try:
+        seasons = tariff["buyback"]["seasons"]
+        period = seasons[0]["days"][0]["periods"][0]
+        return float(period["rate"])
+    except Exception:
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -272,6 +358,37 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
         elif name == "enphase_get_alerts":
             result = await api.get_alerts()
+
+        elif name == "enphase_get_power_flow":
+            power_raw, today, tariff = await asyncio.gather(
+                api.get_latest_power(),
+                api.get_today_stats(),
+                api.get_tariff(),
+            )
+            now_az = datetime.now(ARIZONA)
+            intervals = today.get("intervals", [])
+            latest_interval = intervals[-1] if intervals else {}
+            rate = _find_active_rate(tariff, now_az)
+            demand = _demand_charge_context(tariff, now_az)
+            export_rate = _buyback_rate(tariff)
+            result = {
+                "timestamp": now_az.isoformat(),
+                "production": {
+                    "solar_w": power_raw.get("latest_power", {}).get("value"),
+                },
+                "today_wh": {
+                    "produced": today.get("energy_produced"),
+                    "consumed": today.get("energy_consumed"),
+                    "imported": today.get("energy_imported"),
+                    "exported": today.get("energy_exported"),
+                    "battery_charged": today.get("energy_charged"),
+                    "battery_discharged": today.get("energy_discharged"),
+                    "battery_soc_pct": today.get("battery_soc") or latest_interval.get("soc"),
+                },
+                "rate": rate,
+                "demand_charge": demand,
+                "buyback_rate_per_kwh": export_rate,
+            }
 
         elif name == "enphase_get_tariff":
             result = await api.get_tariff()
