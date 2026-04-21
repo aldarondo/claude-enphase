@@ -47,3 +47,6 @@ Production deployment — server running reliably on local machine or NAS with C
 - APScheduler background job for weekday/weekend battery profile switching (Arizona TOU)
 - Full pytest test suite
 - `.env.example` credentials template
+
+## 🚫 Blocked
+- ❌ [docker-monitor:deploy-failed] GitHub Actions deploy failed (run #24690326749) — https://github.com/aldarondo/claude-enphase/actions/runs/24690326749 — 2026-04-21 08:00 UTC
