@@ -49,4 +49,5 @@ Production deployment — server running reliably on local machine or NAS with C
 - `.env.example` credentials template
 
 ## 🚫 Blocked
+- ❌ [docker-monitor:container-stopped] Container `enphase-mcp` is not running on the NAS — check `docker logs enphase-mcp` and restart — 2026-04-21 08:42 UTC
 - ❌ [docker-monitor:deploy-failed] GitHub Actions deploy failed (run #24690326749) — https://github.com/aldarondo/claude-enphase/actions/runs/24690326749 — 2026-04-21 08:00 UTC
