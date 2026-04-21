@@ -20,6 +20,7 @@ from api import (
     get_savings,
     get_battery_settings,
     set_battery_profile,
+    set_charge_window,
     get_tariff,
     get_alerts,
     get_status_summary,
@@ -142,6 +143,42 @@ async def test_set_battery_profile_raises_for_invalid_profile(mock_request):
         await set_battery_profile("turbo_mode")
 
     mock_request.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# set_charge_window
+# ---------------------------------------------------------------------------
+
+async def test_set_charge_window_posts_correct_payload(mock_request):
+    payload = {"status": "ok"}
+    mock_request.return_value = _make_response(payload)
+
+    result = await set_charge_window(600, 900)
+
+    assert result == payload
+    mock_request.assert_called_once_with(
+        "POST",
+        f"/service/batteryConfig/api/v1/batterySettings/{SITE_ID}",
+        json={"chargeBeginTime": 600, "chargeEndTime": 900, "source": "enho", "userId": int(USER_ID)},
+    )
+
+
+async def test_set_charge_window_summer_constants(mock_request):
+    from server import SUMMER_CHARGE_BEGIN, SUMMER_CHARGE_END
+    mock_request.return_value = _make_response({})
+    await set_charge_window(SUMMER_CHARGE_BEGIN, SUMMER_CHARGE_END)
+    _, kwargs = mock_request.call_args
+    assert kwargs["json"]["chargeBeginTime"] == 720   # noon
+    assert kwargs["json"]["chargeEndTime"] == 900     # 3pm
+
+
+async def test_set_charge_window_winter_constants(mock_request):
+    from server import WINTER_CHARGE_BEGIN, WINTER_CHARGE_END
+    mock_request.return_value = _make_response({})
+    await set_charge_window(WINTER_CHARGE_BEGIN, WINTER_CHARGE_END)
+    _, kwargs = mock_request.call_args
+    assert kwargs["json"]["chargeBeginTime"] == 600   # 10am
+    assert kwargs["json"]["chargeEndTime"] == 900     # 3pm
 
 
 # ---------------------------------------------------------------------------

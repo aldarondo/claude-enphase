@@ -44,6 +44,18 @@ async def get_battery_settings() -> dict:
     return resp.json()
 
 
+async def set_charge_window(begin_minutes: int, end_minutes: int) -> dict:
+    """Set the charge-from-grid time window. Times are minutes from midnight (AZ time)."""
+    auth = get_auth()
+    resp = await auth.request(
+        "POST",
+        f"/service/batteryConfig/api/v1/batterySettings/{SITE_ID}",
+        json={"chargeBeginTime": begin_minutes, "chargeEndTime": end_minutes,
+              "source": "enho", "userId": int(USER_ID)},
+    )
+    return resp.json()
+
+
 async def set_battery_profile(profile: str) -> dict:
     if profile not in VALID_PROFILES:
         raise ValueError(f"Invalid profile '{profile}'. Choose from: {VALID_PROFILES}")

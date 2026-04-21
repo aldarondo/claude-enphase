@@ -15,6 +15,7 @@ Production deployment — server running reliably on local machine or NAS with C
 [Empty]
 
 ## ✅ Completed
+- **Seasonal charge window scheduler + `enphase_set_charge_window` tool (2026-04-21)** — May 1 → noon–3pm (summer, $0.048/kWh), Nov 1 → 10am–3pm (winter, $0.036/kWh); weekend profile scheduler restored alongside it; README fully updated
 - **Added `enphase_get_power_flow` tool (2026-04-21)** — solar production W + today's energy balance + live APS TOU rate ($/kWh + tier) + demand charge window status + buyback rate; 14 new tests
 - **Added `enphase_check_alerts` tool (2026-04-21)** — combines demand spike risk (low SoC heading into 4–7pm weekday window) and low battery threshold alert; callable by the coordinator on a schedule; 12 new tests
 - **Removed weekend auto-scheduler from server.py (2026-04-21)** — profile switching delegated to enphase-juicebox-coordinator; dropped apscheduler/pytz/tzdata deps

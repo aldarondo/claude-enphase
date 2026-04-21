@@ -156,6 +156,29 @@ TOOLS = [
         },
     ),
     Tool(
+        name="enphase_set_charge_window",
+        description=(
+            "Sets the charge-from-grid time window. Times are minutes from midnight (AZ time). "
+            "Winter (Nov–Apr): begin=600 (10am), end=900 (3pm) — cheapest off-peak rate. "
+            "Summer (May–Oct): begin=720 (noon), end=900 (3pm) — solar handles morning charging. "
+            "The background scheduler applies these automatically on May 1 and Nov 1."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "begin_minutes": {
+                    "type": "integer",
+                    "description": "Window start in minutes from midnight. E.g. 600=10am, 720=noon.",
+                },
+                "end_minutes": {
+                    "type": "integer",
+                    "description": "Window end in minutes from midnight. E.g. 840=2pm, 900=3pm.",
+                },
+            },
+            "required": ["begin_minutes", "end_minutes"],
+        },
+    ),
+    Tool(
         name="enphase_get_power_flow",
         description=(
             "Returns real-time solar production (W), today's energy balance (produced / consumed / "
@@ -330,6 +353,12 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "today_stats": today_stats,
             }
 
+        elif name == "enphase_set_charge_window":
+            begin = int(arguments["begin_minutes"])
+            end = int(arguments["end_minutes"])
+            result = await api.set_charge_window(begin, end)
+            result = {"success": True, "begin_minutes": begin, "end_minutes": end, "response": result}
+
         elif name == "enphase_get_battery_settings":
             result = await api.get_battery_settings()
 
@@ -404,14 +433,21 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
 
 # ---------------------------------------------------------------------------
-# Weekend auto-scheduler
+# Background scheduler — weekend profiles + seasonal charge windows
 # ---------------------------------------------------------------------------
+
+# Charge window constants (minutes from midnight, AZ time)
+SUMMER_CHARGE_BEGIN = 720   # noon
+SUMMER_CHARGE_END   = 900   # 3pm  (solar handles morning; cheapest non-peak rate)
+WINTER_CHARGE_BEGIN = 600   # 10am
+WINTER_CHARGE_END   = 900   # 3pm  (off-peak $0.036/kWh window; wider buffer for cloudy days)
+
 
 async def _switch_to_self_consumption():
     logger.info("Scheduler: switching to self-consumption (weekend)")
     try:
         await api.set_battery_profile("self-consumption")
-        logger.info("Scheduler: switched to self-consumption successfully")
+        logger.info("Scheduler: switched to self-consumption OK")
     except Exception:
         logger.exception("Scheduler: failed to switch to self-consumption")
 
@@ -420,33 +456,45 @@ async def _switch_to_cost_savings():
     logger.info("Scheduler: switching to cost_savings (weekday)")
     try:
         await api.set_battery_profile("cost_savings")
-        logger.info("Scheduler: switched to cost_savings successfully")
+        logger.info("Scheduler: switched to cost_savings OK")
     except Exception:
         logger.exception("Scheduler: failed to switch to cost_savings")
+
+
+async def _apply_summer_charge_window():
+    logger.info("Scheduler: applying summer charge window (%d–%d min)", SUMMER_CHARGE_BEGIN, SUMMER_CHARGE_END)
+    try:
+        await api.set_charge_window(SUMMER_CHARGE_BEGIN, SUMMER_CHARGE_END)
+        logger.info("Scheduler: summer charge window applied OK")
+    except Exception:
+        logger.exception("Scheduler: failed to apply summer charge window")
+
+
+async def _apply_winter_charge_window():
+    logger.info("Scheduler: applying winter charge window (%d–%d min)", WINTER_CHARGE_BEGIN, WINTER_CHARGE_END)
+    try:
+        await api.set_charge_window(WINTER_CHARGE_BEGIN, WINTER_CHARGE_END)
+        logger.info("Scheduler: winter charge window applied OK")
+    except Exception:
+        logger.exception("Scheduler: failed to apply winter charge window")
 
 
 def _build_scheduler() -> AsyncIOScheduler:
     scheduler = AsyncIOScheduler(timezone=ARIZONA)
 
-    # Saturday 12:00 AM AZ time → self-consumption
-    scheduler.add_job(
-        _switch_to_self_consumption,
-        "cron",
-        day_of_week="sat",
-        hour=0,
-        minute=0,
-        id="weekend_on",
-    )
+    # Weekend battery profile switching
+    scheduler.add_job(_switch_to_self_consumption, "cron",
+                      day_of_week="sat", hour=0, minute=0, id="weekend_on")
+    scheduler.add_job(_switch_to_cost_savings, "cron",
+                      day_of_week="mon", hour=0, minute=0, id="weekend_off")
 
-    # Monday 12:00 AM AZ time → cost_savings
-    scheduler.add_job(
-        _switch_to_cost_savings,
-        "cron",
-        day_of_week="mon",
-        hour=0,
-        minute=0,
-        id="weekend_off",
-    )
+    # Seasonal charge-from-grid window transitions
+    # Summer (May–Oct): noon–3pm — solar handles morning, grid tops off if needed
+    scheduler.add_job(_apply_summer_charge_window, "cron",
+                      month=5, day=1, hour=0, minute=0, id="charge_window_summer")
+    # Winter (Nov–Apr): 10am–3pm — wider window for cloudy days, cheapest off-peak rate
+    scheduler.add_job(_apply_winter_charge_window, "cron",
+                      month=11, day=1, hour=0, minute=0, id="charge_window_winter")
 
     return scheduler
 
@@ -458,9 +506,11 @@ def _build_scheduler() -> AsyncIOScheduler:
 def _start_scheduler() -> AsyncIOScheduler:
     scheduler = _build_scheduler()
     scheduler.start()
-    logger.info("Weekend scheduler started (US/Arizona timezone)")
-    logger.info("  Saturday 00:00 AZ → self-consumption")
-    logger.info("  Monday   00:00 AZ → cost_savings")
+    logger.info("Scheduler started (US/Arizona timezone)")
+    logger.info("  Sat 00:00 AZ  → self-consumption profile")
+    logger.info("  Mon 00:00 AZ  → cost_savings profile")
+    logger.info("  May  1 00:00 AZ → summer charge window (%d–%d min)", SUMMER_CHARGE_BEGIN, SUMMER_CHARGE_END)
+    logger.info("  Nov  1 00:00 AZ → winter charge window (%d–%d min)", WINTER_CHARGE_BEGIN, WINTER_CHARGE_END)
     return scheduler
 
 
