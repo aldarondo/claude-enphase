@@ -16,6 +16,8 @@ import asyncio
 import logging
 import os
 from datetime import date, datetime
+from logging.handlers import RotatingFileHandler
+from pathlib import Path
 
 import pytz
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -25,7 +27,13 @@ from mcp.types import TextContent, Tool
 
 import api
 
-logging.basicConfig(level=logging.INFO)
+LOG_PATH = Path(os.environ.get("LOG_DIR", "/app/logs")) / "enphase.log"
+LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+_file_handler = RotatingFileHandler(LOG_PATH, maxBytes=5 * 1024 * 1024, backupCount=3)
+_file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s"))
+
+logging.basicConfig(level=logging.INFO, handlers=[logging.StreamHandler(), _file_handler])
 logger = logging.getLogger("enphase-mcp")
 
 ARIZONA = pytz.timezone("US/Arizona")
@@ -194,6 +202,24 @@ TOOLS = [
         inputSchema={
             "type": "object",
             "properties": {},
+            "required": [],
+        },
+    ),
+    Tool(
+        name="enphase_get_logs",
+        description=(
+            "Returns the last N lines from the server log file. "
+            "Use this to audit scheduler actions (profile switches, charge window changes) "
+            "and errors after a container redeploy. Defaults to 100 lines."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "lines": {
+                    "type": "integer",
+                    "description": "Number of log lines to return (default 100, max 500).",
+                }
+            },
             "required": [],
         },
     ),
@@ -434,6 +460,20 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
         elif name == "enphase_get_tariff":
             result = await api.get_tariff()
+
+        elif name == "enphase_get_logs":
+            n = min(int(arguments.get("lines", 100)), 500)
+            lines: list[str] = []
+            # Read current log file plus rotated backups in chronological order
+            log_files = [LOG_PATH] + [
+                LOG_PATH.with_suffix(f".log.{i}") for i in range(1, 4)
+                if LOG_PATH.with_suffix(f".log.{i}").exists()
+            ]
+            for lf in reversed(log_files):
+                if lf.exists():
+                    lines = lf.read_text(encoding="utf-8", errors="replace").splitlines() + lines
+            tail = lines[-n:] if len(lines) > n else lines
+            result = {"log_file": str(LOG_PATH), "lines_returned": len(tail), "log": "\n".join(tail)}
 
         else:
             return [TextContent(type="text", text=f"Unknown tool: {name}")]

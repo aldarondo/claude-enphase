@@ -10,6 +10,8 @@ services:
       MCP_PORT: "8766"
       ENPHASE_EMAIL: ${ENPHASE_EMAIL}
       ENPHASE_PASSWORD: ${ENPHASE_PASSWORD}
+    volumes:
+      - ./logs:/app/logs
     ports:
       - "8766:8766"
     healthcheck:
