@@ -26,6 +26,7 @@ cp .env.example .env   # then fill in credentials
 | `MCP_TRANSPORT` | `stdio` (default) or `sse` |
 | `MCP_HOST` | SSE bind address (default `0.0.0.0`) |
 | `MCP_PORT` | SSE port (default `8766`) |
+| `LOG_DIR` | Directory for log file (default `/app/logs`) |
 
 > **Note:** `SITE_ID`, `USER_ID`, and `ENVOY_SERIAL` are hardcoded in `api.py` (site `3687112`, user `3263059`, envoy `202215001910`). Edit those constants if your system differs.
 
@@ -85,6 +86,19 @@ pytest
 | `enphase_check_alerts` | Smart alert evaluation: demand spike risk (low SoC before 4–7pm weekday) and low battery threshold. Designed for coordinator polling |
 | `enphase_get_alerts` | Raw active system alerts from the Enphase platform |
 | `enphase_get_tariff` | Full APS TOU rate structure: tiers, $/kWh prices, hourly schedule by day and season |
+| `enphase_get_logs` | Last N lines from the server log file (default 100, max 500). Use to audit scheduler actions and errors after a redeploy |
+
+## Logging
+
+All log output goes to both stdout and a rotating file at `/app/logs/enphase.log` (5 MB per file, 3 backups kept). In Docker mode the `./logs` directory is mounted from the host, so logs survive container redeployment.
+
+| Detail | Value |
+|---|---|
+| Log file | `/app/logs/enphase.log` (inside container) / `./logs/enphase.log` on host |
+| Rotation | 5 MB per file, 3 backups (`enphase.log.1`, `.log.2`, `.log.3`) |
+| Override path | Set `LOG_DIR` env var to write logs elsewhere (useful for local stdio dev) |
+
+Use `enphase_get_logs` to retrieve recent log lines directly from Claude without SSH access.
 
 ## Background scheduler
 
