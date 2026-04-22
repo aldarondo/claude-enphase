@@ -2,7 +2,6 @@
 Clean wrappers around the Enphase Enlighten internal web API.
 """
 
-from datetime import date as DateType
 from auth import get_auth
 
 SITE_ID = "3687112"

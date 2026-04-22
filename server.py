@@ -361,6 +361,11 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         elif name == "enphase_set_charge_window":
             begin = int(arguments["begin_minutes"])
             end = int(arguments["end_minutes"])
+            if not (0 <= begin < end < 1440):
+                raise ValueError(
+                    f"Invalid charge window: begin={begin}, end={end}. "
+                    "Values must satisfy 0 ≤ begin < end < 1440 (minutes from midnight)."
+                )
             result = await api.set_charge_window(begin, end)
             result = {"success": True, "begin_minutes": begin, "end_minutes": end, "response": result}
 
