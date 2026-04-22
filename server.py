@@ -274,7 +274,7 @@ def _find_active_rate(tariff: dict, now_az: datetime) -> dict | None:
             return {"period_id": fallback["id"], "type": fallback["type"],
                     "rate_per_kwh": float(fallback["rate"]), "season": season["id"]}
     except Exception:
-        pass
+        logger.warning("_find_active_rate failed — tariff structure may be malformed", exc_info=True)
     return None
 
 
@@ -298,7 +298,7 @@ def _demand_charge_context(tariff: dict, now_az: datetime) -> dict | None:
                         "season": season["id"],
                     }
     except Exception:
-        pass
+        logger.warning("_demand_charge_context failed — tariff structure may be malformed", exc_info=True)
     return None
 
 
@@ -309,6 +309,7 @@ def _buyback_rate(tariff: dict) -> float | None:
         period = seasons[0]["days"][0]["periods"][0]
         return float(period["rate"])
     except Exception:
+        logger.warning("_buyback_rate failed — buyback tariff structure may be malformed", exc_info=True)
         return None
 
 
@@ -482,7 +483,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
     except Exception as exc:
         logger.exception("Tool %s failed", name)
-        return [TextContent(type="text", text=f"Error: {exc}")]
+        return [TextContent(type="text", text=json.dumps({"error": str(exc)}))]
 
 
 # ---------------------------------------------------------------------------

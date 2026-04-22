@@ -25,14 +25,14 @@ async def test_charge_window_valid(mock_set):
 @patch("api.set_charge_window", new_callable=AsyncMock)
 async def test_charge_window_end_before_begin(mock_set):
     result = await call_tool("enphase_set_charge_window", {"begin_minutes": 900, "end_minutes": 600})
-    assert "Error" in result[0].text or "error" in result[0].text.lower()
+    assert "error" in json.loads(result[0].text)
     mock_set.assert_not_called()
 
 
 @patch("api.set_charge_window", new_callable=AsyncMock)
 async def test_charge_window_negative_begin(mock_set):
     result = await call_tool("enphase_set_charge_window", {"begin_minutes": -1, "end_minutes": 600})
-    assert "Error" in result[0].text or "error" in result[0].text.lower()
+    assert "error" in json.loads(result[0].text)
     mock_set.assert_not_called()
 
 
@@ -40,12 +40,12 @@ async def test_charge_window_negative_begin(mock_set):
 async def test_charge_window_end_at_midnight(mock_set):
     """1440 is out of range (valid range is 0–1439)."""
     result = await call_tool("enphase_set_charge_window", {"begin_minutes": 600, "end_minutes": 1440})
-    assert "Error" in result[0].text or "error" in result[0].text.lower()
+    assert "error" in json.loads(result[0].text)
     mock_set.assert_not_called()
 
 
 @patch("api.set_charge_window", new_callable=AsyncMock)
 async def test_charge_window_equal_begin_end(mock_set):
     result = await call_tool("enphase_set_charge_window", {"begin_minutes": 600, "end_minutes": 600})
-    assert "Error" in result[0].text or "error" in result[0].text.lower()
+    assert "error" in json.loads(result[0].text)
     mock_set.assert_not_called()
