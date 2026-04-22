@@ -6,7 +6,8 @@
       "Bash(git --version)",
       "Bash(winget install:*)",
       "Bash(gh run *)",
-      "Bash(gh secret *)"
+      "Bash(gh secret *)",
+      "Bash(python -m pytest --tb=short)"
     ]
   }
 }
