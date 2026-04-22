@@ -1,31 +1,11 @@
 """
 Unit tests for auth.py — uses respx to mock httpx calls.
 """
-import sys
-import os
 import pytest
 import respx
 import httpx
 
-# Ensure the project root is on the path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-import auth as auth_module
 from auth import EnphaseAuth, BASE_URL, LOGIN_URL, TOKEN_URL
-
-
-@pytest.fixture(autouse=True)
-def reset_auth_singleton():
-    """Reset the module-level singleton between tests."""
-    auth_module._auth = None
-    yield
-    auth_module._auth = None
-
-
-@pytest.fixture
-def valid_env(monkeypatch):
-    monkeypatch.setenv("ENPHASE_EMAIL", "test@example.com")
-    monkeypatch.setenv("ENPHASE_PASSWORD", "secret")
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +38,7 @@ def test_raises_if_both_missing(monkeypatch):
 # ---------------------------------------------------------------------------
 
 @respx.mock
-async def test_get_csrf_token_success(valid_env):
+async def test_get_csrf_token_success():
     respx.get(TOKEN_URL).mock(return_value=httpx.Response(200, text='"my-token"'))
 
     a = EnphaseAuth()
@@ -69,7 +49,7 @@ async def test_get_csrf_token_success(valid_env):
 
 
 @respx.mock
-async def test_get_csrf_token_401_triggers_login_then_retries(valid_env):
+async def test_get_csrf_token_401_triggers_login_then_retries():
     # First call → 401, second call → 200
     token_route = respx.get(TOKEN_URL).mock(
         side_effect=[
@@ -92,7 +72,7 @@ async def test_get_csrf_token_401_triggers_login_then_retries(valid_env):
 # ---------------------------------------------------------------------------
 
 @respx.mock
-async def test_request_post_adds_csrf_header(valid_env):
+async def test_request_post_adds_csrf_header():
     respx.get(TOKEN_URL).mock(return_value=httpx.Response(200, text='"csrf-abc"'))
     target = respx.post(f"{BASE_URL}/some/endpoint").mock(
         return_value=httpx.Response(200, json={"ok": True})
@@ -111,7 +91,7 @@ async def test_request_post_adds_csrf_header(valid_env):
 # ---------------------------------------------------------------------------
 
 @respx.mock
-async def test_request_retries_after_401(valid_env):
+async def test_request_retries_after_401():
     respx.get(TOKEN_URL).mock(return_value=httpx.Response(200, text='"tok"'))
     login_route = respx.post(LOGIN_URL).mock(return_value=httpx.Response(200))
 
@@ -135,7 +115,7 @@ async def test_request_retries_after_401(valid_env):
 # ---------------------------------------------------------------------------
 
 @respx.mock
-async def test_request_raises_on_non_401_error(valid_env):
+async def test_request_raises_on_non_401_error():
     respx.get(f"{BASE_URL}/bad/endpoint").mock(return_value=httpx.Response(500))
 
     a = EnphaseAuth()

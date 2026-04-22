@@ -2,12 +2,9 @@
 Tests for _find_active_rate, _demand_charge_context, _buyback_rate — pure functions, no I/O.
 Tariff fixture mirrors the live APS R-3 TOU structure.
 """
-import sys
-import os
 from datetime import datetime
 import pytz
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+import pytest
 
 from server import _find_active_rate, _demand_charge_context, _buyback_rate, _in_season
 
@@ -101,8 +98,6 @@ TARIFF = {
 
 def _az(month: int, weekday: int, hour: int, minute: int = 0) -> datetime:
     """Build an Arizona-aware datetime for the given month/weekday/hour."""
-    from datetime import timedelta
-    # Use a known Monday in each month
     known_mondays = {1: 5, 2: 2, 3: 2, 4: 7, 5: 5, 6: 2, 7: 7, 8: 4, 9: 1, 10: 6, 11: 3, 12: 1}
     day = known_mondays[month] + weekday  # weekday 0=Mon
     return ARIZONA.localize(datetime(2026, month, day, hour, minute))
@@ -176,8 +171,6 @@ def test_summer_weekday_off_peak():
 # ---------------------------------------------------------------------------
 # _demand_charge_context
 # ---------------------------------------------------------------------------
-
-import pytest
 
 
 def test_demand_in_window_winter():

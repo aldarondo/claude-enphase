@@ -1,12 +1,8 @@
 """
 Tests for _evaluate_alerts — pure function, no I/O.
 """
-import sys
-import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from server import _evaluate_alerts
 
@@ -15,9 +11,7 @@ ARIZONA = pytz.timezone("US/Arizona")
 
 def _az(weekday: int, hour: int) -> datetime:
     """Build an Arizona-aware datetime on a specific weekday (0=Mon) and hour."""
-    # Pick a known Monday (2026-04-20) as base; offset by weekday
-    from datetime import timedelta
-    base = ARIZONA.localize(datetime(2026, 4, 20, hour, 0, 0))  # Monday
+    base = ARIZONA.localize(datetime(2026, 4, 20, hour, 0, 0))  # known Monday
     return base + timedelta(days=weekday)
 
 

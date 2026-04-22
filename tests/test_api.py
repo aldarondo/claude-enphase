@@ -1,16 +1,10 @@
 """
 Unit tests for api.py — mocks EnphaseAuth.request via AsyncMock.
 """
-import sys
-import os
 import pytest
 from unittest.mock import AsyncMock, patch
 import httpx
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-import api as api_module
-import auth as auth_module
 from api import (
     SITE_ID,
     USER_ID,
@@ -24,20 +18,14 @@ from api import (
     get_tariff,
     get_alerts,
     get_status_summary,
+    get_weather,
+    get_site_settings,
+    get_grid_status,
 )
 
 
 def _make_response(json_data: dict, status_code: int = 200) -> httpx.Response:
     return httpx.Response(status_code, json=json_data)
-
-
-@pytest.fixture(autouse=True)
-def reset_auth_singleton(monkeypatch):
-    """Reset module-level _auth singleton (lives in auth.py) so each test starts fresh."""
-    monkeypatch.setattr(auth_module, "_auth", None)
-    # Also set env vars so EnphaseAuth() can be constructed if needed
-    monkeypatch.setenv("ENPHASE_EMAIL", "test@example.com")
-    monkeypatch.setenv("ENPHASE_PASSWORD", "secret")
 
 
 @pytest.fixture
@@ -261,3 +249,61 @@ async def test_get_status_summary_aggregates_correctly(mock_request):
     assert result["today"]["solar_produced_wh"] == 18000
     assert result["today"]["consumed_wh"] == 9000
     assert result["today"]["battery_soc_pct"] == 85
+
+
+# ---------------------------------------------------------------------------
+# get_weather
+# ---------------------------------------------------------------------------
+
+async def test_get_weather_calls_correct_endpoint(mock_request):
+    payload = {"temperature": 98, "conditions": "sunny"}
+    mock_request.return_value = _make_response(payload)
+
+    result = await get_weather()
+
+    assert result == payload
+    mock_request.assert_called_once_with("GET", f"/app-api/{SITE_ID}/weather")
+
+
+# ---------------------------------------------------------------------------
+# get_site_settings
+# ---------------------------------------------------------------------------
+
+async def test_get_site_settings_calls_correct_endpoint(mock_request):
+    payload = {"timezone": "America/Phoenix"}
+    mock_request.return_value = _make_response(payload)
+
+    result = await get_site_settings()
+
+    assert result == payload
+    mock_request.assert_called_once_with(
+        "GET",
+        f"/service/batteryConfig/api/v1/siteSettings/{SITE_ID}",
+        params={"userId": USER_ID},
+    )
+
+
+# ---------------------------------------------------------------------------
+# get_grid_status
+# ---------------------------------------------------------------------------
+
+async def test_get_grid_status_calls_correct_endpoint(mock_request):
+    payload = {"grid_status": "on"}
+    mock_request.return_value = _make_response(payload)
+
+    result = await get_grid_status()
+
+    assert result == payload
+    mock_request.assert_called_once_with("GET", f"/app-api/{SITE_ID}/grid_control_check.json")
+
+
+# ---------------------------------------------------------------------------
+# set_charge_window — tool handler validation (guard lives in server.py call_tool)
+# ---------------------------------------------------------------------------
+
+async def test_set_charge_window_valid_range(mock_request):
+    mock_request.return_value = _make_response({"status": "ok"})
+    result = await set_charge_window(0, 1439)
+    _, kwargs = mock_request.call_args
+    assert kwargs["json"]["chargeBeginTime"] == 0
+    assert kwargs["json"]["chargeEndTime"] == 1439
