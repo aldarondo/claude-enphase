@@ -244,6 +244,40 @@ TOOLS = [
 # Tariff helpers (pure — no I/O)
 # ---------------------------------------------------------------------------
 
+def _extract_current(today_stats: dict | None) -> dict:
+    """
+    Resolve production_w, consumption_w, and solar_grid_w for the most recently
+    completed 15-minute interval.
+
+    The Enphase /today response pre-fills future interval slots with 0 (not None),
+    so naively taking the last value returns 0 during daylight hours.  The SOC array
+    correctly uses None for future slots, so we use it as the "has data" indicator.
+    """
+    if not today_stats:
+        return {"production_w": None, "consumption_w": None, "solar_grid_w": None, "battery_soc": None}
+    try:
+        stats = today_stats["stats"][0]
+        battery_soc = today_stats["battery_details"]["aggregate_soc"]
+        soc_arr = stats.get("soc", [])
+        last_idx = next((i for i in range(len(soc_arr) - 1, -1, -1) if soc_arr[i] is not None), None)
+
+        def _at(arr) -> int | None:
+            if last_idx is None or last_idx >= len(arr):
+                return None
+            val = arr[last_idx]
+            return int(val) if val is not None else None
+
+        return {
+            "production_w":  _at(stats.get("production",  [])),
+            "consumption_w": _at(stats.get("consumption", [])),
+            "solar_grid_w":  _at(stats.get("solar_grid",  [])),
+            "battery_soc":   battery_soc,
+        }
+    except (KeyError, IndexError, TypeError):
+        logger.warning("_extract_current failed — today_stats structure may have changed", exc_info=True)
+        return {"production_w": None, "consumption_w": None, "solar_grid_w": None, "battery_soc": None}
+
+
 def _in_season(season: dict, month: int) -> bool:
     start, end = int(season["startMonth"]), int(season["endMonth"])
     if start <= end:
@@ -383,6 +417,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "date": target_date,
                 "savings": savings,
                 "today_stats": today_stats,
+                "current": _extract_current(today_stats),
             }
 
         elif name == "enphase_set_charge_window":
