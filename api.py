@@ -59,10 +59,12 @@ async def set_battery_profile(profile: str) -> dict:
     if profile not in VALID_PROFILES:
         raise ValueError(f"Invalid profile '{profile}'. Choose from: {VALID_PROFILES}")
     auth = get_auth()
+    # Enphase updated their API: profile changes now go to PUT /profile/ (not POST /batterySettings/).
     resp = await auth.request(
-        "POST",
-        f"/service/batteryConfig/api/v1/batterySettings/{SITE_ID}",
-        json={"usage": profile, "source": "enho", "userId": int(USER_ID)},
+        "PUT",
+        f"/service/batteryConfig/api/v1/profile/{SITE_ID}",
+        params={"userId": USER_ID},
+        json={"profile": profile, "batteryBackupPercentage": 20},
     )
     return resp.json()
 
