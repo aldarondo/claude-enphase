@@ -63,7 +63,15 @@ class EnphaseAuth:
     ) -> httpx.Response:
         client = await self._get_client()
 
-        headers = {}
+        headers = {
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/124.0.0.0 Safari/537.36"
+            ),
+            "Referer": f"{BASE_URL}/",
+            "Origin": BASE_URL,
+        }
         if method.upper() in ("POST", "PUT", "PATCH"):
             csrf = await self.get_csrf_token()
             headers["X-XSRF-Token"] = csrf
