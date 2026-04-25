@@ -100,6 +100,16 @@ async def get_alerts() -> dict:
     return resp.json()
 
 
+async def get_storm_alert() -> dict:
+    auth = get_auth()
+    resp = await auth.request(
+        "GET",
+        f"/service/batteryConfig/api/v1/stormGuard/{SITE_ID}/stormAlert",
+        params={"userId": USER_ID},
+    )
+    return resp.json()
+
+
 async def get_site_settings() -> dict:
     auth = get_auth()
     resp = await auth.request(

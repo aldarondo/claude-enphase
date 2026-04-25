@@ -224,6 +224,15 @@ TOOLS = [
         },
     ),
     Tool(
+        name="enphase_get_storm_guard",
+        description=(
+            "Returns the current Storm Guard alert state. "
+            "active=true means Enphase has detected a storm and is charging the battery to 100% — "
+            "battery mode switches should be skipped until the alert clears."
+        ),
+        inputSchema={"type": "object", "properties": {}, "required": []},
+    ),
+    Tool(
         name="enphase_get_tariff",
         description=(
             "Returns the full TOU (time-of-use) rate structure: all rate tiers, their $/kWh prices, "
@@ -493,6 +502,11 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                 "demand_charge": demand,
                 "buyback_rate_per_kwh": export_rate,
             }
+
+        elif name == "enphase_get_storm_guard":
+            raw = await api.get_storm_alert()
+            active = bool(raw.get("alertActive") or raw.get("active") or raw.get("stormAlert"))
+            result = {"active": active, "raw": raw}
 
         elif name == "enphase_get_tariff":
             result = await api.get_tariff()
