@@ -137,9 +137,30 @@ async def test_request_retries_after_401():
 # ---------------------------------------------------------------------------
 
 @respx.mock
-async def test_request_raises_on_non_401_error():
+async def test_request_raises_on_non_auth_error():
     respx.get(f"{BASE_URL}/bad/endpoint").mock(return_value=httpx.Response(500))
 
     a = EnphaseAuth()
     with pytest.raises(httpx.HTTPStatusError):
         await a.request("GET", "/bad/endpoint")
+
+
+@respx.mock
+async def test_request_retries_after_403():
+    respx.get(LOGIN_URL).mock(return_value=httpx.Response(200))
+    login_route = respx.post(LOGIN_URL).mock(return_value=httpx.Response(200))
+
+    put_route = respx.put(f"{BASE_URL}/some/resource").mock(
+        side_effect=[
+            httpx.Response(403),
+            httpx.Response(200, json={"ok": True}),
+        ]
+    )
+    respx.get(TOKEN_URL).mock(return_value=httpx.Response(200, text='"tok"'))
+
+    a = EnphaseAuth()
+    resp = await a.request("PUT", "/some/resource", json={})
+
+    assert resp.json() == {"ok": True}
+    assert login_route.called
+    assert put_route.call_count == 2

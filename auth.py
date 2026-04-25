@@ -102,7 +102,9 @@ class EnphaseAuth:
 
         resp = await client.request(method, url, json=json, params=params, headers=headers)
 
-        if resp.status_code == 401 and retry:
+        # 401 = unauthenticated; 403 on write endpoints can mean stale/missing CSRF token.
+        # Both warrant a fresh login + one retry.
+        if resp.status_code in (401, 403) and retry:
             await self.login()
             return await self.request(method, url, json=json, params=params, retry=False)
 
