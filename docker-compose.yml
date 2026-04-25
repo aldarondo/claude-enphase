@@ -14,6 +14,11 @@ services:
       - ./logs:/app/logs
     ports:
       - "8766:8766"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8766/sse')"]
       interval: 60s
