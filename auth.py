@@ -2,9 +2,12 @@
 Enphase Enlighten authentication: login, session cookie, CSRF token refresh.
 """
 
+import logging
 import os
 import httpx
 from dotenv import load_dotenv
+
+log = logging.getLogger(__name__)
 
 load_dotenv()
 
@@ -33,6 +36,8 @@ class EnphaseAuth:
 
     async def login(self) -> None:
         client = await self._get_client()
+        # GET the login page first — Enlighten sets the XSRF-TOKEN cookie on page load.
+        await client.get(f"{BASE_URL}/login/login")
         resp = await client.post(
             LOGIN_URL,
             data={"user[email]": self.email, "user[password]": self.password},
@@ -40,6 +45,8 @@ class EnphaseAuth:
         )
         resp.raise_for_status()
         self._csrf_token = None  # force refresh after login
+        cookie_names = [c.name for c in client.cookies.jar]
+        log.info("[auth] cookies after login: %s", cookie_names)
 
     async def get_csrf_token(self) -> str:
         client = await self._get_client()
