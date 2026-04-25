@@ -113,17 +113,17 @@ async def test_get_battery_settings_calls_correct_endpoint(mock_request):
 # ---------------------------------------------------------------------------
 
 async def test_set_battery_profile_posts_to_correct_endpoint(mock_request):
-    payload = {"status": "ok"}
+    payload = {"profile": "self-consumption"}
     mock_request.return_value = _make_response(payload)
 
     result = await set_battery_profile("self-consumption")
 
     assert result == payload
-    mock_request.assert_called_once_with(
-        "POST",
-        f"/service/batteryConfig/api/v1/batterySettings/{SITE_ID}",
-        json={"usage": "self-consumption", "source": "enho", "userId": int(USER_ID)},
-    )
+    args, kwargs = mock_request.call_args
+    assert args[0] == "PUT"
+    assert args[1] == f"/service/batteryConfig/api/v1/profile/{SITE_ID}"
+    assert kwargs["json"]["profile"] == "self-consumption"
+    assert kwargs["params"] == {"userId": USER_ID}
 
 
 async def test_set_battery_profile_raises_for_invalid_profile(mock_request):
@@ -138,17 +138,19 @@ async def test_set_battery_profile_raises_for_invalid_profile(mock_request):
 # ---------------------------------------------------------------------------
 
 async def test_set_charge_window_posts_correct_payload(mock_request):
-    payload = {"status": "ok"}
+    payload = {"message": "success"}
     mock_request.return_value = _make_response(payload)
 
     result = await set_charge_window(600, 900)
 
     assert result == payload
-    mock_request.assert_called_once_with(
-        "POST",
-        f"/service/batteryConfig/api/v1/batterySettings/{SITE_ID}",
-        json={"chargeBeginTime": 600, "chargeEndTime": 900, "source": "enho", "userId": int(USER_ID)},
-    )
+    args, kwargs = mock_request.call_args
+    assert args[0] == "PUT"
+    assert args[1] == f"/service/batteryConfig/api/v1/batterySettings/{SITE_ID}"
+    assert kwargs["json"]["chargeBeginTime"] == 600
+    assert kwargs["json"]["chargeEndTime"] == 900
+    assert kwargs["json"]["chargeFromGrid"] is False
+    assert "acceptedItcDisclaimer" in kwargs["json"]
 
 
 async def test_set_charge_window_summer_constants(mock_request):

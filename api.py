@@ -45,12 +45,21 @@ async def get_battery_settings() -> dict:
 
 async def set_charge_window(begin_minutes: int, end_minutes: int) -> dict:
     """Set the charge-from-grid time window. Times are minutes from midnight (AZ time)."""
+    from datetime import datetime, timezone
     auth = get_auth()
+    # Enphase API migrated from POST to PUT for batterySettings writes.
+    # acceptedItcDisclaimer is required by the endpoint; pass current UTC time.
     resp = await auth.request(
-        "POST",
+        "PUT",
         f"/service/batteryConfig/api/v1/batterySettings/{SITE_ID}",
-        json={"chargeBeginTime": begin_minutes, "chargeEndTime": end_minutes,
-              "source": "enho", "userId": int(USER_ID)},
+        params={"userId": USER_ID},
+        json={
+            "chargeBeginTime": begin_minutes,
+            "chargeEndTime": end_minutes,
+            "chargeFromGrid": False,
+            "acceptedItcDisclaimer": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "chargeFromGridScheduleEnabled": False,
+        },
     )
     return resp.json()
 
