@@ -233,6 +233,19 @@ TOOLS = [
         inputSchema={"type": "object", "properties": {}, "required": []},
     ),
     Tool(
+        name="enphase_get_grid_event",
+        description=(
+            "Returns whether an APS Storage Rewards grid dispatch event is currently active. "
+            "active=true means APS is controlling the battery via a demand-response dispatch — "
+            "local battery mode switches should be skipped until the event ends. "
+            "NOTE: The Enphase grid-services event API is not publicly documented; this tool "
+            "uses a best-effort heuristic (battery profile not in {self-consumption, cost_savings, "
+            "backup_only, ai_optimisation, expert}) plus any explicit event fields in the battery "
+            "settings response. Verify the raw field during a live event and update if needed."
+        ),
+        inputSchema={"type": "object", "properties": {}, "required": []},
+    ),
+    Tool(
         name="enphase_get_tariff",
         description=(
             "Returns the full TOU (time-of-use) rate structure: all rate tiers, their $/kWh prices, "
@@ -507,6 +520,35 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             raw = await api.get_storm_alert()
             active = bool(raw.get("alertActive") or raw.get("active") or raw.get("stormAlert"))
             result = {"active": active, "raw": raw}
+
+        elif name == "enphase_get_grid_event":
+            raw = await api.get_battery_settings()
+            # Known coordinator-managed profiles — anything outside this set likely
+            # means Enphase has been placed into a grid-services / demand-response mode
+            # by APS. Also check explicit event fields that Enphase may expose.
+            KNOWN_LOCAL_PROFILES = {
+                "self-consumption", "cost_savings", "backup_only",
+                "ai_optimisation", "expert", "",
+            }
+            profile = str(raw.get("usage") or raw.get("profile") or raw.get("battery_profile") or "")
+            profile_is_grid = profile not in KNOWN_LOCAL_PROFILES
+            # Explicit event fields — may or may not be present depending on API version
+            explicit_event = bool(
+                raw.get("gridServicesEvent")
+                or raw.get("demandResponseEvent")
+                or raw.get("gridEvent")
+                or raw.get("storageRewardsEvent")
+            )
+            active = profile_is_grid or explicit_event
+            result = {
+                "active": active,
+                "detected_via": (
+                    "explicit_field" if explicit_event
+                    else ("unexpected_profile" if profile_is_grid else "none")
+                ),
+                "profile": profile,
+                "raw": raw,
+            }
 
         elif name == "enphase_get_tariff":
             result = await api.get_tariff()
