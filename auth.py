@@ -50,16 +50,16 @@ class EnphaseAuth:
 
     async def get_csrf_token(self) -> str:
         client = await self._get_client()
-        # Prefer the XSRF-TOKEN cookie (set by Enlighten after login).
+        # Prefer the BP-XSRF-Token cookie (set by Enlighten after login).
         # Browser JS cannot read it (HttpOnly), but the Python httpx jar can.
         # The /profile/ write endpoint validates this cookie value, not the JWT.
-        xsrf = client.cookies.get("XSRF-TOKEN")
+        xsrf = client.cookies.get("BP-XSRF-Token")
         if xsrf:
             self._csrf_token = xsrf
             return xsrf
         # No cookie yet — establish a session first.
         await self.login()
-        xsrf = client.cookies.get("XSRF-TOKEN")
+        xsrf = client.cookies.get("BP-XSRF-Token")
         if xsrf:
             self._csrf_token = xsrf
             return xsrf
@@ -95,7 +95,9 @@ class EnphaseAuth:
         }
         if method.upper() in ("POST", "PUT", "PATCH"):
             csrf = await self.get_csrf_token()
+            # Enlighten uses BP-XSRF-Token cookie; corresponding request header is X-BP-XSRF-Token.
             headers["X-XSRF-Token"] = csrf
+            headers["X-BP-XSRF-Token"] = csrf
             headers["Content-Type"] = "application/json"
 
         resp = await client.request(method, url, json=json, params=params, headers=headers)
