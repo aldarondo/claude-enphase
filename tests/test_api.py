@@ -8,7 +8,6 @@ import httpx
 from api import (
     SITE_ID,
     USER_ID,
-    VALID_PROFILES,
     get_latest_power,
     get_today_stats,
     get_savings,
