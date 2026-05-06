@@ -12,8 +12,7 @@ services:
       ENPHASE_PASSWORD: ${ENPHASE_PASSWORD}
     volumes:
       - /volume1/docker/claude-enphase/logs:/app/logs
-    ports:
-      - "8766:8766"
+    network_mode: host
     logging:
       driver: "json-file"
       options:
