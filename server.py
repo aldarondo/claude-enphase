@@ -674,6 +674,7 @@ def _run_sse(host: str, port: int):
     from contextlib import asynccontextmanager
     from mcp.server.sse import SseServerTransport
     from starlette.applications import Starlette
+    from starlette.responses import Response
     from starlette.routing import Mount, Route
     import uvicorn
 
@@ -684,6 +685,14 @@ def _run_sse(host: str, port: int):
             request.scope, request.receive, request._send
         ) as streams:
             await app.run(streams[0], streams[1], app.create_initialization_options())
+        # Starlette >=0.36 (container currently runs 1.3.1) requires a route
+        # endpoint to return a Response. Without this, the SSE handler returns
+        # None and Starlette raises "TypeError: 'NoneType' object is not callable"
+        # on every connection, so no MCP client (incl. the coordinator) can
+        # reach this server. The MCP SDK documents this exact remedy in
+        # mcp/server/sse.py. Regression appeared when the 2026-07-09 image
+        # rebuild floated starlette up from 0.40.x to 1.3.1.
+        return Response()
 
     @asynccontextmanager
     async def lifespan(app):
