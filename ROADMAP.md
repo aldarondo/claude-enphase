@@ -48,6 +48,6 @@ Production deployment — server running reliably on local machine or NAS with C
 - `.env.example` credentials template
 
 ## 🚫 Blocked
-- ❌ [docker-monitor:container-stopped] Container `enphase-mcp` is not running on the NAS — check `docker logs enphase-mcp` and restart — 2026-08-04 08:00 UTC
+- ❌ [docker-monitor:container-stopped] Container `enphase-mcp` is not running on the NAS — check `docker logs enphase-mcp` and restart — 2026-08-05 08:00 UTC
 
 [Empty]
