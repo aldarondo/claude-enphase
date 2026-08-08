@@ -49,6 +49,6 @@ Production deployment — server running reliably on local machine or NAS with C
 - `.env.example` credentials template
 
 ## 🚫 Blocked
-- ❌ [docker-monitor:container-stopped] Container `enphase-mcp` is not running on the NAS — check `docker logs enphase-mcp` and restart — 2026-08-06 08:00 UTC
+- ✅ Cleared 2026-08-08 — [docker-monitor:container-stopped] Container `enphase-mcp` not running (raised 2026-08-06 08:00 UTC). Root cause was the unpinned `mcp` dependency letting 2.0.0 in; see the fix in ✅ Completed. Container is up, healthy, `restarts=0`, and `/sse` returns 200.
 
 [Empty]
