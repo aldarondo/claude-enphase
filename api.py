@@ -2,6 +2,8 @@
 Clean wrappers around the Enphase Enlighten internal web API.
 """
 
+from datetime import UTC
+
 from auth import get_auth
 
 SITE_ID = "3687112"
@@ -45,7 +47,7 @@ async def get_battery_settings() -> dict:
 
 async def set_charge_window(begin_minutes: int, end_minutes: int) -> dict:
     """Set the charge-from-grid time window. Times are minutes from midnight (AZ time)."""
-    from datetime import datetime, timezone
+    from datetime import datetime
     auth = get_auth()
     # Enphase API migrated from POST to PUT for batterySettings writes.
     # acceptedItcDisclaimer is required by the endpoint; pass current UTC time.
@@ -57,7 +59,7 @@ async def set_charge_window(begin_minutes: int, end_minutes: int) -> dict:
             "chargeBeginTime": begin_minutes,
             "chargeEndTime": end_minutes,
             "chargeFromGrid": False,
-            "acceptedItcDisclaimer": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
+            "acceptedItcDisclaimer": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
             "chargeFromGridScheduleEnabled": False,
         },
     )

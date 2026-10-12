@@ -4,6 +4,7 @@ Enphase Enlighten authentication: login, session cookie, CSRF token refresh.
 
 import logging
 import os
+
 import httpx
 from dotenv import load_dotenv
 

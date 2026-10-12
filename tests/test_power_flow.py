@@ -3,10 +3,11 @@ Tests for _find_active_rate, _demand_charge_context, _buyback_rate — pure func
 Tariff fixture mirrors the live APS R-3 TOU structure.
 """
 from datetime import datetime
-import pytz
-import pytest
 
-from server import _find_active_rate, _demand_charge_context, _buyback_rate, _in_season
+import pytest
+import pytz
+
+from server import _buyback_rate, _demand_charge_context, _find_active_rate, _in_season
 
 ARIZONA = pytz.timezone("US/Arizona")
 

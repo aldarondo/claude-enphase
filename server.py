@@ -672,11 +672,12 @@ async def _run_stdio():
 def _run_sse(host: str, port: int):
     """Run server with SSE transport (persistent NAS deployment)."""
     from contextlib import asynccontextmanager
+
+    import uvicorn
     from mcp.server.sse import SseServerTransport
     from starlette.applications import Starlette
     from starlette.responses import Response
     from starlette.routing import Mount, Route
-    import uvicorn
 
     sse_transport = SseServerTransport("/messages/")
 
