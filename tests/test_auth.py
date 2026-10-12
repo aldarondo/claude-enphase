@@ -1,12 +1,11 @@
 """
 Unit tests for auth.py — uses respx to mock httpx calls.
 """
+import httpx
 import pytest
 import respx
-import httpx
 
-from auth import EnphaseAuth, BASE_URL, LOGIN_URL, TOKEN_URL
-
+from auth import BASE_URL, LOGIN_URL, TOKEN_URL, EnphaseAuth
 
 # ---------------------------------------------------------------------------
 # EnphaseAuth constructor

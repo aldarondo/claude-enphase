@@ -2,6 +2,7 @@
 Tests for _evaluate_alerts — pure function, no I/O.
 """
 from datetime import datetime, timedelta
+
 import pytz
 
 from server import _evaluate_alerts

@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, patch
 
 from server import call_tool
 
-
 # ---------------------------------------------------------------------------
 # enphase_set_charge_window — input validation
 # ---------------------------------------------------------------------------

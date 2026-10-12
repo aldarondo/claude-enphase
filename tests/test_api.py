@@ -1,25 +1,26 @@
 """
 Unit tests for api.py — mocks EnphaseAuth.request via AsyncMock.
 """
-import pytest
 from unittest.mock import AsyncMock, patch
+
 import httpx
+import pytest
 
 from api import (
     SITE_ID,
     USER_ID,
-    get_latest_power,
-    get_today_stats,
-    get_savings,
+    get_alerts,
     get_battery_settings,
+    get_grid_status,
+    get_latest_power,
+    get_savings,
+    get_site_settings,
+    get_status_summary,
+    get_tariff,
+    get_today_stats,
+    get_weather,
     set_battery_profile,
     set_charge_window,
-    get_tariff,
-    get_alerts,
-    get_status_summary,
-    get_weather,
-    get_site_settings,
-    get_grid_status,
 )
 
 

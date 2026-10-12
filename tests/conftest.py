@@ -2,6 +2,7 @@
 Shared pytest fixtures for the enphase test suite.
 """
 import pytest
+
 import auth as auth_module
 
 
